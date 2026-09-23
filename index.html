@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBER_ACADEMY // Cursos de Tecnologia</title>
+  
+  <!-- Fontes Retro-Cyberpunk -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Three.js CDN para o fundo 3D -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    /* ==========================================================================
+       PALETA DE CORES & VARIÁVEIS CYBERPUNK
+       ========================================================================== */
+    :root {
+      --taupe: #93827f;
+      --cream: #f3f9d2;
+      --dry-sage: #bdc4a7;
+      --graphite: #2f2f2f;
+      --muted-teal: #92b4a7;
+
+      /* Glassmorphism Presets */
+      --glass-bg: rgba(47, 47, 47, 0.7);
+      --glass-border: rgba(243, 249, 210, 0.25);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+      /* Fontes */
+      --font-heading: 'Orbitron', sans-serif;
+      --font-body: 'Rajdhani', sans-serif;
+    }
+
+    /* ==========================================================================
+       RESET & MOBILE FIRST BASE (0px - 480px)
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--graphite);
+      color: var(--cream);
+      min-height: 100vh;
+      overflow-x: hidden;
+      font-size: 1.1rem;
+      line-height: 1.4;
+    }
+
+    /* Canvas Three.js em segundo plano */
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -2;
+    }
+
+    /* Efeito de Scanlines Retro */
+    .scanline-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.25) 50%
+      );
+      background-size: 100% 4px;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* Utilitário Glassmorphism */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      box-shadow: var(--glass-shadow);
+    }
+
+    /* Header & Navegação Mobile */
+    .main-header {
+      position: sticky;
+      top: 10px;
+      margin: 10px;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: var(--font-heading);
+      font-size: 1.3rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+
+    .logo .highlight {
+      color: var(--muted-teal);
+    }
+
+    /* Botão Hamburguer */
+    .menu-toggle {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .menu-toggle span {
+      width: 25px;
+      height: 3px;
+      background-color: var(--cream);
+      transition: all 0.3s ease;
+    }
+
+    .main-nav {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      background: var(--graphite);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      display: none;
+      flex-direction: column;
+      padding: 1rem;
+      margin-top: 10px;
+    }
+
+    .main-nav.active {
+      display: flex;
+    }
+
+    .main-nav ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+    }
+
+    .main-nav a {
+      color: var(--cream);
+      text-decoration: none;
+      font-family: var(--font-heading);
+      font-size: 0.95rem;
+      transition: color 0.3s;
+    }
+
+    .main-nav a:hover {
+      color: var(--muted-teal);
+    }
+
+    /* Main & Sections */
+    main {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* Hero Section */
+    .hero-section {
+      padding: 2rem 1.2rem;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--taupe);
+      color: var(--cream);
+      font-size: 0.75rem;
+      font-family: var(--font-heading);
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .hero-section h1 {
+      font-family: var(--font-heading);
+      font-size: 1.8rem;
+      color: var(--cream);
+      text-shadow: 2px 2px 0px var(--taupe);
+      margin-bottom: 1rem;
+    }
+
+    .hero-section p {
+      color: var(--dry-sage);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* Botões Cyberpunk */
+    .cyber-button {
+      display: inline-block;
+      padding: 0.8rem 1.5rem;
+      font-family: var(--font-heading);
+      font-size: 0.9rem;
+      text-decoration: none;
+      text-align: center;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .cyber-button.primary {
+      background: var(--muted-teal);
+      color: var(--graphite);
+      font-weight: 700;
+      box-shadow: 0 0 10px rgba(146, 180, 167, 0.4);
+    }
+
+    .cyber-button.primary:hover {
+      background: var(--cream);
+      box-shadow: 0 0 15px rgba(243, 249, 210, 0.7);
+    }
+
+    .cyber-button.secondary {
+      background: transparent;
+      border-color: var(--dry-sage);
+      color: var(--cream);
+    }
+
+    .cyber-button.secondary:hover {
+      background: rgba(189, 196, 167, 0.2);
+    }
+
+    /* Filtros */
+    .section-title {
+      padding: 1.5rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-title h2 {
+      font-family: var(--font-heading);
+      color: var(--cream);
+      font-size: 1.5rem;
+    }
+
+    .section-title p {
+      color: var(--dry-sage);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    .filter-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: 1px solid var(--dry-sage);
+      color: var(--cream);
+      padding: 6px 12px;
+      font-family: var(--font-heading);
+      font-size: 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--dry-sage);
+      color: var(--graphite);
+      font-weight: bold;
+    }
+
+    /* Grid e Cards de Cursos */
+    .courses-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .course-card {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .course-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(146, 180, 167, 0.2);
+    }
+
+    .course-tag {
+      align-self: flex-start;
+      font-family: var(--font-heading);
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--taupe);
+      color: var(--cream);
+    }
+
+    .course-card h3 {
+      font-family: var(--font-heading);
+      font-size: 1.2rem;
+      color: var(--cream);
+    }
+
+    .course-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(243, 249, 210, 0.1);
+    }
+
+    .duration {
+      font-weight: 700;
+      color: var(--muted-teal);
+    }
+
+    /* Features */
+    .features-section {
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .features-section h2 {
+      font-family: var(--font-heading);
+      font-size: 1.4rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .features-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .feature-item {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 1.2rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--muted-teal);
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-item h3 {
+      font-family: var(--font-heading);
+      margin-bottom: 0.5rem;
+    }
+
+    /* Formulário Cyberpunk */
+    .contact-section {
+      padding: 1.5rem;
+    }
+
+    .contact-section h2 {
+      font-family: var(--font-heading);
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .contact-section p {
+      text-align: center;
+      color: var(--dry-sage);
+      margin-bottom: 1.5rem;
+    }
+
+    .cyber-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .form-group label {
+      font-family: var(--font-heading);
+      font-size: 0.8rem;
+      color: var(--dry-sage);
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 0.8rem;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--dry-sage);
+      color: var(--cream);
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--muted-teal);
+      box-shadow: 0 0 8px rgba(146, 180, 167, 0.5);
+    }
+
+    .full-width {
+      width: 100%;
+    }
+
+    .form-feedback {
+      margin-top: 1rem;
+      padding: 0.8rem;
+      border-radius: 6px;
+      text-align: center;
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+    }
+
+    .form-feedback.success {
+      background: rgba(146, 180, 167, 0.3);
+      border: 1px solid var(--muted-teal);
+      color: var(--cream);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Footer */
+    .main-footer {
+      padding: 1.2rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--dry-sage);
+      margin: 10px;
+    }
+
+    /* ==========================================================================
+       BREAKPOINTS RESPONSIVOS (PROGRESSÃO PARA TABLETS, DESKTOPS E ULTRA-WIDE)
+       ========================================================================== */
+
+    /* Phablets / Dispositivos Grandes (481px - 767px) */
+    @media (min-width: 481px) {
+      .hero-actions {
+        flex-direction: row;
+        justify-content: center;
+      }
+    }
+
+    /* Tablets (768px - 1024px) */
+    @media (min-width: 768px) {
+      .main-header {
+        margin: 15px auto;
+        max-width: 1200px;
+        padding: 1rem 2rem;
+      }
+
+      .menu-toggle {
+        display: none;
+      }
+
+      .main-nav {
+        position: static;
+        display: flex;
+        width: auto;
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin-top: 0;
+      }
+
+      .main-nav ul {
+        flex-direction: row;
+        align-items: center;
+      }
+
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .courses-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    /* Laptops e Desktops (1025px - 1439px) */
+    @media (min-width: 1025px) {
+      .hero-section {
+        padding: 4rem 2rem;
+      }
+
+      .hero-section h1 {
+        font-size: 2.8rem;
+      }
+
+      .courses-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .cyber-form {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+    }
+
+    /* Ultra-Wide & Monitores 4K (1440px+) */
+    @media (min-width: 1440px) {
+      main, .main-header {
+        max-width: 1400px;
+      }
+
+      body {
+        font-size: 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Canvas do Three.js para efeito 3D no fundo -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- Overlay de Scanlines Retro-Cyberpunk -->
+  <div class="scanline-overlay"></div>
+
+  <!-- Cabeçalho -->
+  <header class="main-header glass-card">
+    <div class="logo">
+      <span class="highlight">CYBER_</span>ACADEMY
+    </div>
+    
+    <button class="menu-toggle" id="menu-toggle" aria-label="Abrir Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <nav class="main-nav" id="main-nav" aria-label="Navegação Principal">
+      <ul>
+        <li><a href="#hero">// Início</a></li>
+        <li><a href="#cursos">// Cursos</a></li>
+        <li><a href="#diferenciais">// Tech Lab</a></li>
+        <li><a href="#contato" class="btn-nav">// Matricular</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Seção Hero -->
+    <section id="hero" class="hero-section glass-card">
+      <div class="hero-content">
+        <span class="badge">PROXIMA GERAÇÃO // 1980s VIBES</span>
+        <h1>FORJE SEU FUTURO NO CÓDIGO</h1>
+        <p>Aprenda Python, Web Dev e Bancos de Dados com uma metodologia jovem, prática e 100% mão na massa. Domine a matriz!</p>
+        <div class="hero-actions">
+          <a href="#cursos" class="cyber-button primary">EXPLORAR CURSOS</a>
+          <a href="#contato" class="cyber-button secondary">FALAR COM MENTOR</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filtros e Galeria de Cursos -->
+    <section id="cursos" class="courses-section">
+      <div class="section-title glass-card">
+        <h2>// MATRIZ DE CURSOS</h2>
+        <p>Selecione sua trilha de conhecimento e suba de nível</p>
+        
+        <!-- Filtros Dinâmicos -->
+        <div class="filter-buttons" id="filter-buttons">
+          <button class="filter-btn active" data-filter="all">TODOS</button>
+          <button class="filter-btn" data-filter="python">PYTHON</button>
+          <button class="filter-btn" data-filter="web">DEV WEB</button>
+          <button class="filter-btn" data-filter="db">BANCO DE DADOS</button>
+        </div>
+      </div>
+
+      <!-- Container dos Cursos -->
+      <div class="courses-grid" id="courses-grid">
+        <!-- Cards gerados dinamicamente via JS -->
+      </div>
+    </section>
+
+    <!-- Seção de Diferenciais/Destaques -->
+    <section id="diferenciais" class="features-section glass-card">
+      <h2>// POR QUE A CYBER_ACADEMY?</h2>
+      <div class="features-grid">
+        <article class="feature-item">
+          <div class="feature-icon">⚡</div>
+          <h3>Aulas Práticas</h3>
+          <p>Zero enrolação. Projetos reais criados do primeiro ao último minuto.</p>
+        </article>
+        <article class="feature-item">
+          <div class="feature-icon">🎮</div>
+          <h3>Gamificação</h3>
+          <p>Ganhe badges, cumpra desafios e evolua como num RPG.</p>
+        </article>
+        <article class="feature-item">
+          <div class="feature-icon">🤖</div>
+          <h3>Mentorias 1:1</h3>
+          <p>Acompanhamento direto com devs do mercado de trabalho.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Seção de Inscrição / Contato -->
+    <section id="contato" class="contact-section glass-card">
+      <h2>// INICIE A SUA JORNADA</h2>
+      <p>Preencha os dados e receba o programa completo dos cursos no seu e-mail!</p>
+      
+      <form class="cyber-form" id="enroll-form">
+        <div class="form-group">
+          <label for="name">NOME COMPLETO</label>
+          <input type="text" id="name" placeholder="Ex: Alex Murphy" required>
+        </div>
+        <div class="form-group">
+          <label for="email">E-MAIL</label>
+          <input type="email" id="email" placeholder="alex@cyber.io" required>
+        </div>
+        <div class="form-group">
+          <label for="course-select">CURSO DE INTERESSE</label>
+          <select id="course-select" required>
+            <option value="" disabled selected>Selecione um curso...</option>
+            <option value="py1">Programação em Python 1 - 40h</option>
+            <option value="py2">Programação em Python 2 - 40h</option>
+            <option value="py3">Programação em Python 3 - 60h</option>
+            <option value="web1">Desenvolvimento Web com HTML, CSS e JS - 60h</option>
+            <option value="web2">Desenvolvimento Web com React - 40h</option>
+            <option value="web3">Desenvolvimento Web com Flask e Django - 80h</option>
+            <option value="db1">Banco de Dados SQLite3 - 20h</option>
+            <option value="db2">Banco de Dados Realtime Database - 20h</option>
+            <option value="db3">Banco de Dados PostgreSQL - 40h</option>
+          </select>
+        </div>
+        <button type="submit" class="cyber-button primary full-width">ENVIAR APLICAÇÃO</button>
+      </form>
+      <div id="form-feedback" class="form-feedback hidden"></div>
+    </section>
+  </main>
+
+  <!-- Rodapé -->
+  <footer class="main-footer glass-card">
+    <p>&copy; 2026 CYBER_ACADEMY. Todos os direitos reservados. [SYSTEM_READY]</p>
+  </footer>
+
+  <script>
+    /* ==========================================================================
+       1. DADOS DOS CURSOS
+       ========================================================================== */
+    const coursesData = [
+      { id: 'py1', title: 'Programação em Python 1', hours: '40h', category: 'python', desc: 'Sintaxe básica, estruturas de controle e primeiros scripts.' },
+      { id: 'py2', title: 'Programação em Python 2', hours: '40h', category: 'python', desc: 'Orientação a objetos, manipulação de arquivos e módulos.' },
+      { id: 'py3', title: 'Programação em Python 3', hours: '60h', category: 'python', desc: 'Estruturas avançadas, automações e projetos complexos.' },
+      
+      { id: 'web1', title: 'Desenvolvimento Web com HTML, CSS e JS', hours: '60h', category: 'web', desc: 'Fundamentos da Web, responsividade e interatividade básica.' },
+      { id: 'web2', title: 'Desenvolvimento Web com React', hours: '40h', category: 'web', desc: 'Componentização, Hooks e SPAs modernas.' },
+      { id: 'web3', title: 'Desenvolvimento Web com Flask e Django', hours: '80h', category: 'web', desc: 'Criação de APIs robustas e aplicações web fullstack.' },
+      
+      { id: 'db1', title: 'Banco de Dados SQLite3', hours: '20h', category: 'db', desc: 'Modelagem relacional leve e consultas SQL fundamentais.' },
+      { id: 'db2', title: 'Banco de Dados Realtime Database', hours: '20h', category: 'db', desc: 'Sincronização de dados em tempo real para web e mobile.' },
+      { id: 'db3', title: 'Banco de Dados PostgreSQL', hours: '40h', category: 'db', desc: 'Gerenciamento de dados relacional de alto desempenho.' }
+    ];
+
+    /* ==========================================================================
+       2. RENDERIZAÇÃO E FILTRAGEM DINÂMICA
+       ========================================================================== */
+    document.addEventListener('DOMContentLoaded', () => {
+      const coursesGrid = document.getElementById('courses-grid');
+      const filterBtns = document.querySelectorAll('.filter-btn');
+      const menuToggle = document.getElementById('menu-toggle');
+      const mainNav = document.getElementById('main-nav');
+      const enrollForm = document.getElementById('enroll-form');
+      const formFeedback = document.getElementById('form-feedback');
+
+      function renderCourses(filter = 'all') {
+        coursesGrid.innerHTML = '';
+        
+        const filteredCourses = filter === 'all' 
+          ? coursesData 
+          : coursesData.filter(course => course.category === filter);
+
+        filteredCourses.forEach(course => {
+          const card = document.createElement('article');
+          card.className = 'course-card glass-card';
+          card.innerHTML = `
+            <span class="course-tag">${course.category.toUpperCase()}</span>
+            <h3>${course.title}</h3>
+            <p>${course.desc}</p>
+            <div class="course-info">
+              <span class="duration">⏱ ${course.hours}</span>
+              <a href="#contato" class="cyber-button secondary select-course-btn" data-id="${course.id}">Garantir Vaga</a>
+            </div>
+          `;
+          coursesGrid.appendChild(card);
+        });
+
+        document.querySelectorAll('.select-course-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const courseId = e.target.getAttribute('data-id');
+            const selectElem = document.getElementById('course-select');
+            if (selectElem) selectElem.value = courseId;
+          });
+        });
+      }
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          filterBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderCourses(btn.dataset.filter);
+        });
+      });
+
+      menuToggle.addEventListener('click', () => {
+        mainNav.classList.toggle('active');
+      });
+
+      enrollForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        formFeedback.textContent = 'SYSTEM // Solicitação enviada com sucesso! Verifique seu e-mail.';
+        formFeedback.className = 'form-feedback success';
+        enrollForm.reset();
+      });
+
+      renderCourses();
+      initThreeJS();
+    });
+
+    /* ==========================================================================
+       3. EFEITOS THREE.JS (Grid 3D Cyberpunk Dinâmico)
+       ========================================================================== */
+    function initThreeJS() {
+      const canvas = document.getElementById('bg-canvas');
+      const scene = new THREE.Scene();
+      
+      scene.fog = new THREE.FogExp2(0x2f2f2f, 0.015);
+
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 3, 10);
+      camera.lookAt(0, 0, 0);
+
+      const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      const gridHelper = new THREE.GridHelper(100, 60, 0x92b4a7, 0x93827f);
+      gridHelper.position.y = -2;
+      scene.add(gridHelper);
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        gridHelper.position.z += 0.05;
+        if (gridHelper.position.z > 1.66) {
+          gridHelper.position.z = 0;
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+  </script>
+</body>
+</html>
